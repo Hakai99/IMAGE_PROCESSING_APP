@@ -73,7 +73,6 @@ def reset():
     if not check_image_loaded():
         return
 
-    # Reset adjustment values
     brightness_value = 0
     contrast_value = 1.0
     gamma_value = 1.0
@@ -82,7 +81,6 @@ def reset():
     contrast_slider.set(1.0)
     gamma_slider.set(1.0)
 
-    # Restore original image
     processed_img = original_img.copy()
     display_image(processed_img, processed_panel)
 
@@ -114,6 +112,74 @@ def log_transform():
         display_image(processed_img, processed_panel)
         status_label.config(text="Log Transformation Applied")
 
+# ---------------- THRESHOLD ---------------- #
+def threshold():
+    global processed_img
+    if check_image_loaded():
+        gray = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+        processed_img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+        display_image(processed_img, processed_panel)
+        status_label.config(text="Threshold Applied")
+
+# ---------------- HISTOGRAM ---------------- #
+def show_histogram():
+    if check_image_loaded():
+        import matplotlib.pyplot as plt
+        gray = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+        hist = cv2.calcHist([gray], [0], None, [256], [0,256])
+        plt.title("Image Histogram")
+        plt.xlabel("Pixel Value")
+        plt.ylabel("Frequency")
+        plt.plot(hist)
+        plt.show()
+        status_label.config(text="Histogram Displayed")
+
+# ---------------- CORRELATION ---------------- #
+def correlation():
+    global processed_img
+    if check_image_loaded():
+        gray = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+        kernel = np.array([[1,0,-1],
+                           [1,0,-1],
+                           [1,0,-1]])
+        corr = cv2.filter2D(gray, -1, kernel)
+        processed_img = cv2.cvtColor(corr, cv2.COLOR_GRAY2BGR)
+        display_image(processed_img, processed_panel)
+        status_label.config(text="Correlation Applied")
+
+# ---------------- CONVOLUTION ---------------- #
+def convolution():
+    global processed_img
+    if check_image_loaded():
+        gray = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+        kernel = np.ones((3,3))/9
+        conv = cv2.filter2D(gray, -1, kernel)
+        processed_img = cv2.cvtColor(conv, cv2.COLOR_GRAY2BGR)
+        display_image(processed_img, processed_panel)
+        status_label.config(text="Convolution Applied")
+
+# ---------------- TOOLS WINDOW ---------------- #
+def open_tools():
+    tools_window = tk.Toplevel(root)
+    tools_window.title("Image Processing Tools")
+    tools_window.geometry("300x420")
+    tools_window.configure(bg="#2d2d2d")
+
+    tk.Label(tools_window,
+             text="Processing Tools",
+             bg="#2d2d2d",
+             fg="white",
+             font=("Segoe UI", 14, "bold")).pack(pady=15)
+
+    ttk.Button(tools_window, text="Grayscale", command=grayscale).pack(pady=5, fill="x", padx=40)
+    ttk.Button(tools_window, text="Negative", command=negative).pack(pady=5, fill="x", padx=40)
+    ttk.Button(tools_window, text="Log Transform", command=log_transform).pack(pady=5, fill="x", padx=40)
+    ttk.Button(tools_window, text="Threshold", command=threshold).pack(pady=5, fill="x", padx=40)
+    ttk.Button(tools_window, text="Histogram", command=show_histogram).pack(pady=5, fill="x", padx=40)
+    ttk.Button(tools_window, text="Correlation", command=correlation).pack(pady=5, fill="x", padx=40)
+    ttk.Button(tools_window, text="Convolution", command=convolution).pack(pady=5, fill="x", padx=40)
+
 # ---------------- SLIDER ADJUSTMENTS ---------------- #
 def adjust_brightness(val):
     global brightness_value
@@ -138,15 +204,11 @@ def apply_adjustments():
 
     img = original_img.astype(np.float32)
 
-    # Gamma
     img = img / 255.0
     img = np.power(img, gamma_value)
     img = img * 255.0
 
-    # Contrast (centered)
     img = (img - 127.5) * contrast_value + 127.5
-
-    # Brightness
     img = img + brightness_value
 
     img = np.clip(img, 0, 255).astype(np.uint8)
@@ -172,18 +234,16 @@ sidebar = tk.Frame(main_frame, bg="#252526", width=260)
 sidebar.pack(side="left", fill="y")
 sidebar.pack_propagate(False)
 
-tk.Label(sidebar, text="TOOLS",
+tk.Label(sidebar, text="MENU",
          bg="#252526", fg="white",
          font=("Segoe UI", 14, "bold")).pack(pady=20)
 
 ttk.Button(sidebar, text="Load Image", command=load_image).pack(pady=5, fill="x", padx=25)
-ttk.Button(sidebar, text="Grayscale", command=grayscale).pack(pady=5, fill="x", padx=25)
-ttk.Button(sidebar, text="Negative", command=negative).pack(pady=5, fill="x", padx=25)
-ttk.Button(sidebar, text="Log Transform", command=log_transform).pack(pady=5, fill="x", padx=25)
+ttk.Button(sidebar, text="Tools", command=open_tools).pack(pady=5, fill="x", padx=25)
 ttk.Button(sidebar, text="Reset", command=reset).pack(pady=10, fill="x", padx=25)
 ttk.Button(sidebar, text="Save Image", command=save_image).pack(pady=5, fill="x", padx=25)
 
-# Sliders
+# ---------------- SLIDERS ---------------- #
 tk.Label(sidebar, text="Brightness", bg="#252526", fg="white").pack(pady=(20,5))
 brightness_slider = tk.Scale(sidebar, from_=-100, to=100,
                              orient="horizontal",
